@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        // Using the same green theme as the SGPA calculator
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4 font-sans text-slate-800">
+
+    <!-- Main Container -->
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        
+        <!-- Header -->
+        <div class="bg-brand-700 p-8 text-center relative overflow-hidden">
+            <div class="relative z-10">
+                <h1 class="text-3xl font-extrabold text-white tracking-tight mb-1">Fee Calculator</h1>
+                <p class="text-brand-100 text-sm font-medium opacity-90">Total Fee Estimator</p>
+            </div>
+            <!-- Decorative background circle -->
+            <div class="absolute top-0 left-0 w-full h-full bg-brand-600 opacity-20 rounded-full transform -translate-y-1/2 scale-150"></div>
+        </div>
+
+        <div class="p-6">
+            <!-- Error Message Area -->
+            <div id="error-msg" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded text-sm animate-pulse">
+                <p class="font-bold"><i class="fas fa-exclamation-circle"></i> Error</p>
+                <p id="error-text">Please check your inputs.</p>
+            </div>
+
+            <!-- Column Headers -->
+            <div class="flex mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <div class="w-1/3 text-left pl-2">Course</div>
+                <div class="w-2/3 text-left pl-2">Type</div>
+            </div>
+
+            <!-- Course List -->
+            <div id="course-list" class="space-y-3 mb-6">
+                <!-- JavaScript will add rows here -->
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-3 mb-6">
+                <button onclick="addCourseRow()" class="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-sm border border-slate-200">
+                    <i class="fas fa-plus"></i> Add Course
+                </button>
+                <button onclick="calculateFee()" class="flex-1 py-3 px-4 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-lg shadow-md transition duration-200 flex items-center justify-center gap-2 transform active:scale-95">
+                    <i class="fas fa-calculator"></i> Calculate
+                </button>
+            </div>
+
+            <!-- Result Display -->
+            <div id="result-container" class="hidden opacity-0 transition-all duration-500 transform scale-95">
+                <div class="bg-gradient-to-br from-brand-50 to-white border border-brand-200 rounded-xl p-8 text-center shadow-inner">
+                    <p class="text-slate-500 font-semibold uppercase text-xs tracking-widest mb-2">Total Fee</p>
+                    <h2 id="fee-value" class="text-6xl font-black text-brand-700 mb-2 tracking-tighter">Rs 0</h2>
+                    <div class="h-1 w-16 bg-brand-200 mx-auto mb-3 rounded-full"></div>
+                    <p id="details-text" class="text-sm text-brand-800 font-medium"></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 text-center">
+            <p class="text-xs text-slate-400">
+                Base Fee: Rs 620. Theory/Practical: Rs 75. Both: Rs 150.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const courseFees = {
+            "select": 0, // Default, non-calculable option
+            "Theory only": 75,
+            "Practical only": 75,
+            "Both theory and practical": 150
+        };
+        const baseFee = 620;
+
+        const courseList = document.getElementById('course-list');
+        const errorMsg = document.getElementById('error-msg');
+        const errorText = document.getElementById('error-text');
+        const resultContainer = document.getElementById('result-container');
+        const feeValue = document.getElementById('fee-value');
+        const detailsText = document.getElementById('details-text');
+
+        let courseCounter = 0; // To auto-number courses
+
+        // --- Utilities ---
+        function showError(message) {
+            errorText.textContent = message;
+            errorMsg.classList.remove('hidden');
+            // Auto-hide error after 3 seconds
+            setTimeout(() => {
+                errorMsg.classList.add('hidden');
+            }, 3000);
+        }
+
+        function createFeeOptions() {
+            let options = '';
+            for (const type of Object.keys(courseFees)) {
+                // Capitalize first letter for display
+                const displayType = type.charAt(0).toUpperCase() + type.slice(1);
+                options += `<option value="${type}">${displayType}</option>`;
+            }
+            return options;
+        }
+
+        // --- Core Logic ---
+        function addCourseRow() {
+            courseCounter++; // Increment the counter
+            const rowId = 'row-' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'course-row grid grid-cols-12 gap-2 items-center animate-[fadeIn_0.3s_ease-out]';
+            div.id = rowId;
+            div.innerHTML = `
+                <div class="col-span-4">
+                    <span class="p-3 w-full text-center font-bold text-slate-700">Course ${courseCounter}</span>
+                </div>
+                <div class="col-span-6">
+                    <select class="course-type w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition appearance-none font-medium cursor-pointer">
+                        ${createFeeOptions()}
+                    </select>
+                </div>
+                <div class="col-span-2 flex justify-center">
+                    <button onclick="removeCourse('${rowId}')" class="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition duration-200">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+            courseList.appendChild(div);
+        }
+
+        function removeCourse(id) {
+            const row = document.getElementById(id);
+            if (courseList.children.length <= 1) {
+                showError("Keep at least one course.");
+                return;
+            }
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(20px)';
+            setTimeout(() => row.remove(), 300);
+        }
+
+        function calculateFee() {
+            const rows = document.querySelectorAll('.course-row');
+            let totalCourseFee = 0;
+            let hasError = false;
+
+            if (rows.length === 0) {
+                showError("Add at least one course.");
+                return;
+            }
+
+            rows.forEach(row => {
+                const typeSelect = row.querySelector('.course-type');
+                const courseType = typeSelect.value;
+                
+                if (courseType === "select") {
+                    typeSelect.classList.add('border-red-500', 'bg-red-50');
+                    hasError = true;
+                } else {
+                    typeSelect.classList.remove('border-red-500', 'bg-red-50');
+                    totalCourseFee += courseFees[courseType];
+                }
+            });
+
+            if (hasError) {
+                showError("Please select a valid type for all courses.");
+                resultContainer.classList.add('hidden');
+                return;
+            }
+
+            const finalTotal = baseFee + totalCourseFee;
+
+            // Update UI
+            feeValue.textContent = `Rs ${finalTotal}`;
+            detailsText.textContent = `Base Fee: Rs ${baseFee} + Course Fees: Rs ${totalCourseFee}`;
+            
+            resultContainer.classList.remove('hidden');
+            // Trigger animation
+            requestAnimationFrame(() => {
+                resultContainer.classList.remove('opacity-0', 'scale-95');
+                resultContainer.classList.add('opacity-100', 'scale-100');
+            });
+        }
+
+        // Initialize with 4 rows
+        window.onload = () => {
+            addCourseRow();
+            addCourseRow();
+            addCourseRow();
+            addCourseRow();
+        };
+    </script>
+    
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</body>
+</html>
